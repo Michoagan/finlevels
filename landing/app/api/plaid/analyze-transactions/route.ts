@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     let payload;
     try {
       payload = decryptChallengeToken(decodeURIComponent(token));
-    } catch (e) {
+    } catch {
       return NextResponse.json({ error: "Session token is invalid or expired." }, { status: 401 });
     }
 
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     let accessToken = clientAccessToken;
     if (!accessToken) {
       // Load Plaid access token from waitlist table in DB
-      const { data: userData, error: fetchErr } = await sb
+      const { data: userData } = await sb
         .from("waitlist")
         .select("plaid_access_token")
         .eq("id", userId)
@@ -49,8 +49,16 @@ export async function POST(request: Request) {
     }
 
 
+    interface PlaidTx {
+      date: string;
+      name?: string | null;
+      merchant_name?: string | null;
+      amount: number;
+      category?: string[] | null;
+    }
+
     // Fetch all historical transactions available from Plaid
-    let plaidTransactions: any[] = [];
+    let plaidTransactions: PlaidTx[] = [];
     try {
       const endDate = new Date().toISOString().split("T")[0];
       const startDate = "2000-01-01";
@@ -62,8 +70,9 @@ export async function POST(request: Request) {
         options: { count: 500 },
       });
       plaidTransactions = plaidResponse.data.transactions || [];
-    } catch (err: any) {
-      console.warn("Plaid transactions not ready during analysis (non-blocking):", err.message);
+    } catch (err) {
+      const error = err as Error;
+      console.warn("Plaid transactions not ready during analysis (non-blocking):", error.message);
     }
 
 
@@ -86,7 +95,7 @@ export async function POST(request: Request) {
       try {
         analysisResult = await runGeminiAnalysis(formattedTx, geminiApiKey);
         console.log("[Plaid AI Analysis] Gemini response received:", JSON.stringify(analysisResult, null, 2));
-      } catch (geminiError: any) {
+      } catch (geminiError) {
         console.error("Gemini AI API analysis failed, using fallback engine:", geminiError);
         analysisResult = runFallbackAnalysis(formattedTx);
       }
@@ -105,8 +114,14 @@ export async function POST(request: Request) {
       primaryFocusCoin = "investing";
     }
 
+    interface SuggestedGoal {
+      name?: string;
+      target?: number;
+      category?: string;
+    }
+
     // Map Gemini suggested cagnottes into structured UserGoal array
-    const mappedGoals = (analysisResult.suggestedGoals || []).map((g: any, index: number) => ({
+    const mappedGoals = (analysisResult.suggestedGoals || []).map((g: SuggestedGoal, index: number) => ({
       id: `plaid_goal_${index}_${Date.now()}`,
       name: g.name || "Épargne Objectif",
       target: Number(g.target || 1000),
@@ -175,8 +190,17 @@ ${s.reward || "N/A"}`;
       }
 
       // 2. Generate exactly 3 Quêtes from the suggestedGoals in status 'pending'
+      interface SuggestedQuest {
+        difficulty?: string;
+        name?: string;
+        description?: string;
+        category?: string;
+        target?: number;
+        duration_days?: number;
+      }
+
       if (suggestedGoals.length > 0) {
-        const questsToInsert = suggestedGoals.map((sg: any) => {
+        const questsToInsert = suggestedGoals.map((sg: SuggestedQuest) => {
           const diff = (sg.difficulty || "medium").toLowerCase();
           let xpReward = 100;
           let coinReward = 20;
@@ -239,8 +263,9 @@ ${s.reward || "N/A"}`;
         });
         if (bossErr) console.warn("Failed to save Boss battle to DB (ensure bosses table exists):", bossErr.message);
       }
-    } catch (questGenErr: any) {
-      console.error("Non-blocking Quest & Boss generation failed:", questGenErr.message);
+    } catch (questGenErr) {
+      const error = questGenErr as Error;
+      console.error("Non-blocking Quest & Boss generation failed:", error.message);
     }
 
     // Trigger Day 0 initial email
@@ -285,12 +310,20 @@ ${s.reward || "N/A"}`;
       analysisSummary: analysisResult.analysisSummary,
       suggestedGoals: mappedGoals,
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Failed to analyze transactions" }, { status: 500 });
+  } catch (error) {
+    const err = error as Error;
+    return NextResponse.json({ error: err.message || "Failed to analyze transactions" }, { status: 500 });
   }
 }
 
-async function runGeminiAnalysis(transactions: any[], apiKey: string) {
+interface FormattedTx {
+  date: string;
+  merchant: string;
+  amount: number;
+  category: string;
+}
+
+async function runGeminiAnalysis(transactions: FormattedTx[], apiKey: string) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
  const promptText = `
@@ -463,7 +496,7 @@ ${JSON.stringify(transactions, null, 2)}
   return JSON.parse(text.trim());
 }
 
-function runFallbackAnalysis(transactions: any[]) {
+function runFallbackAnalysis(transactions: FormattedTx[]) {
   // Simple rule-based fallback if Gemini API is unavailable
   let foodSpends = 0;
   let retailSpends = 0;

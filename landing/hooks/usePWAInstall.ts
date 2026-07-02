@@ -12,15 +12,16 @@ export function usePWAInstall() {
 
     // Detect iOS
     const userAgent = window.navigator.userAgent || "";
-    const ios = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
+    const ios = /iPad|iPhone|iPod/.test(userAgent) && !(window as Window & { MSStream?: unknown }).MSStream;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsIOS(ios);
 
     // Detect if already installed (standalone mode)
-    const standalone = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
+    const standalone = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
     setIsStandalone(standalone);
 
     // Check if prompt is already stored
-    if ((window as any).deferredPrompt) {
+    if ((window as Window & { deferredPrompt?: unknown }).deferredPrompt) {
       setIsInstallable(true);
     }
 
@@ -34,10 +35,15 @@ export function usePWAInstall() {
     };
   }, []);
 
+  interface BeforeInstallPromptEvent extends Event {
+    prompt: () => void;
+    userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+  }
+
   const triggerInstall = async (): Promise<boolean> => {
     if (typeof window === "undefined") return false;
 
-    const deferredPrompt = (window as any).deferredPrompt;
+    const deferredPrompt = (window as Window & { deferredPrompt?: BeforeInstallPromptEvent | null }).deferredPrompt;
     if (!deferredPrompt) {
       console.log("No install prompt available (PWA might be already installed or iOS is used)");
       return false;
@@ -52,7 +58,7 @@ export function usePWAInstall() {
       console.log(`PWA install user outcome: ${outcome}`);
 
       // Clear the prompt since it can only be used once
-      (window as any).deferredPrompt = null;
+      (window as Window & { deferredPrompt?: BeforeInstallPromptEvent | null }).deferredPrompt = null;
       setIsInstallable(false);
       return outcome === "accepted";
     } catch (err) {

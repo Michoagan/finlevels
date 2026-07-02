@@ -1,6 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
+interface PushSubscriptionRequestBody {
+  endpoint?: string;
+  keys?: {
+    p256dh?: string;
+    auth?: string;
+  };
+  userId?: string | number;
+}
+
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -12,9 +21,9 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: any;
+  let body: PushSubscriptionRequestBody;
   try {
-    body = await request.json();
+    body = (await request.json()) as PushSubscriptionRequestBody;
   } catch {
     return NextResponse.json(
       { error: "Invalid request body." },
@@ -57,6 +66,10 @@ export async function POST(request: Request) {
   return NextResponse.json({ success: true });
 }
 
+interface PushDeleteRequestBody {
+  endpoint?: string;
+}
+
 export async function DELETE(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -68,9 +81,9 @@ export async function DELETE(request: Request) {
     );
   }
 
-  let body: any;
+  let body: PushDeleteRequestBody;
   try {
-    body = await request.json();
+    body = (await request.json()) as PushDeleteRequestBody;
   } catch {
     return NextResponse.json(
       { error: "Invalid request body." },

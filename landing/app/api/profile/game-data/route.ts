@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     let payload;
     try {
       payload = decryptChallengeToken(decodeURIComponent(token));
-    } catch (e) {
+    } catch {
       return NextResponse.json({ error: "Session token is invalid or expired." }, { status: 401 });
     }
 
@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
       bosses: bossesRes.data || [],
       streaks: streaksRes.data || [],
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+  } catch (error) {
+    const err = error as Error;
+    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
   }
 }

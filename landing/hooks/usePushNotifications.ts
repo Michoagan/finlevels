@@ -18,6 +18,7 @@ export function usePushNotifications(userId?: number) {
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setBlocked(Notification.permission === "denied");
     navigator.serviceWorker.ready
       .then((reg) => reg.pushManager.getSubscription())

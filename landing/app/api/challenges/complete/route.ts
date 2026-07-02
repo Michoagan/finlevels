@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { decryptChallengeToken } from "../../../../lib/challenge-token";
 import { calculateConsecutiveStreak } from "../../../../lib/challenge-streak";
+import type { UserGoal } from "../../../../lib/challenges";
 
 type CompleteRequestBody = {
   token?: unknown;
@@ -115,9 +116,9 @@ export async function POST(request: Request) {
     .eq("id", tokenPayload.userId)
     .maybeSingle();
 
-  let updatedGoals: any[] = [];
+  let updatedGoals: UserGoal[] = [];
   if (!userError && userData) {
-    let goalsList = Array.isArray(userData.goals) ? userData.goals : [];
+    let goalsList = (Array.isArray(userData.goals) ? userData.goals : []) as UserGoal[];
     if (goalsList.length === 0) {
       goalsList = [
         { id: "emergency", name: "🚨 Emergency Fund", target: 1000, current: 150, category: "stability", isActive: true },
@@ -130,7 +131,7 @@ export async function POST(request: Request) {
     if (savingsAmount > 0) {
       let targetGoalId = depositGoalId;
       if (!targetGoalId) {
-        const currentActive = goalsList.find((g: any) => g.isActive);
+        const currentActive = goalsList.find((g: UserGoal) => g.isActive);
         if (currentActive) {
           targetGoalId = currentActive.id;
         } else if (goalsList.length > 0) {
@@ -139,7 +140,7 @@ export async function POST(request: Request) {
       }
 
       // Check if targetGoalId exists in goalsList, if not add the preset
-      const exists = goalsList.some((g: any) => g.id === targetGoalId);
+      const exists = goalsList.some((g: UserGoal) => g.id === targetGoalId);
       if (!exists && targetGoalId) {
         const standardPresets = [
           { id: "emergency", name: "🚨 Emergency Fund", target: 1000, current: 150, category: "stability", isActive: false },
@@ -152,7 +153,7 @@ export async function POST(request: Request) {
         }
       }
 
-      updatedGoals = goalsList.map((g: any) => {
+      updatedGoals = goalsList.map((g: UserGoal) => {
         const isTarget = g.id === targetGoalId;
         return {
           ...g,

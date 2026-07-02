@@ -1,11 +1,14 @@
-export function trackEvent(eventName: string, properties?: Record<string, any>) {
+export function trackEvent(eventName: string, properties?: Record<string, unknown>) {
   if (typeof window === "undefined") return;
 
   // Console log in development
   console.log(`[Analytics Event] ${eventName}`, properties);
 
   try {
-    const w = window as any;
+    const w = window as unknown as {
+      dataLayer?: Record<string, unknown>[];
+      finlevels_events?: Record<string, unknown>[];
+    };
 
     // Push to Google Tag Manager compatible dataLayer
     w.dataLayer = w.dataLayer || [];

@@ -71,9 +71,10 @@ export async function sendPushToUser(userId: number, payload: ServerPushPayload)
             url: payload.url || "/dashboard",
           })
         );
-      } catch (err: any) {
+      } catch (err) {
+        const error = err as { statusCode?: number };
         // If the push service returns 404 or 410, the subscription has expired or unsubscribed
-        if (err.statusCode === 404 || err.statusCode === 410) {
+        if (error.statusCode === 404 || error.statusCode === 410) {
           console.warn(`[Server Push] Subscription expired. Deleting endpoint: ${sub.endpoint}`);
           await sb.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
         } else {

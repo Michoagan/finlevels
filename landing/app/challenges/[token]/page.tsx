@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import { decryptChallengeToken } from "../../../lib/challenge-token";
 import { calculateConsecutiveStreak } from "../../../lib/challenge-streak";
 import { challengeEmailTemplates } from "../../../lib/challenge-email-templates";
+import { type UserGoal } from "../../../lib/challenges";
 import ChallengeTokenPageClient from "./ChallengeTokenPageClient";
 
 type ChallengeTokenPageProps = {
@@ -182,7 +183,7 @@ export default async function ChallengeTokenPage({
   let savingLevel = 3;
   let investingLevel = 3;
 
-  let initialGoals: any[] = [];
+  let initialGoals: UserGoal[] = [];
 
   let plaidAccessToken = "";
   let plaidBankName = "";

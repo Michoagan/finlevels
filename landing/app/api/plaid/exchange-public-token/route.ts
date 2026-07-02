@@ -46,8 +46,9 @@ export async function POST(request: Request) {
       item_id: itemId,
       success: true,
     });
-  } catch (error: any) {
-    const errMsg = error?.response?.data?.error_message || error.message || "Failed to exchange public token";
+  } catch (error) {
+    const err = error as { response?: { data?: { error_message?: string } }; message?: string };
+    const errMsg = err?.response?.data?.error_message || err.message || "Failed to exchange public token";
     return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }

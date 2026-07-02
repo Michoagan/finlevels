@@ -12,7 +12,7 @@ export default function ServiceWorkerRegistration() {
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      (window as any).deferredPrompt = e;
+      (window as Window & { deferredPrompt?: Event }).deferredPrompt = e;
       window.dispatchEvent(new CustomEvent("pwa-installable"));
     };
 

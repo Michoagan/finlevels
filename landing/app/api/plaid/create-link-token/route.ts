@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { plaidClient } from "../../../../lib/plaid";
-import { Products, CountryCode } from "plaid";
+import { Products, CountryCode, type LinkTokenCreateRequest } from "plaid";
 
 export async function POST(request: Request) {
   try {
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     const siteUrl = (process.env.SITE_URL || "http://localhost:3000").replace(/\/$/, "");
     const redirectUri = siteUrl.startsWith("https://") ? `${siteUrl}/quiz` : undefined;
 
-    const linkTokenConfig: any = {
+    const linkTokenConfig: LinkTokenCreateRequest = {
       user: {
         client_user_id: String(userId || "anonymous"),
       },
@@ -29,8 +29,9 @@ export async function POST(request: Request) {
     const response = await plaidClient.linkTokenCreate(linkTokenConfig);
 
     return NextResponse.json({ link_token: response.data.link_token });
-  } catch (error: any) {
-    const errMsg = error?.response?.data?.error_message || error.message || "Failed to create link token";
+  } catch (error) {
+    const err = error as { response?: { data?: { error_message?: string } }; message?: string };
+    const errMsg = err?.response?.data?.error_message || err.message || "Failed to create link token";
     console.error("[create-link-token] Error:", errMsg);
     return NextResponse.json({ error: errMsg }, { status: 500 });
   }

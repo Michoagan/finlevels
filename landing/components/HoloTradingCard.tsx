@@ -176,7 +176,6 @@ const profileImages: Record<ProfileName, string> = {
 export default function HoloTradingCard({
   profileName,
   playerLevel,
-  userName,
   focusPath,
 }: HoloTradingCardProps) {
   const cardRef = useRef<HTMLDivElement | null>(null);

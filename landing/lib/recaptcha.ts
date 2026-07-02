@@ -12,9 +12,14 @@ export async function executeRecaptcha(action: string): Promise<string> {
     return "";
   }
 
+interface Grecaptcha {
+  ready: (callback: () => void) => void;
+  execute: (siteKey: string, options: { action: string }) => Promise<string>;
+}
+
   // Get the global grecaptcha object if it exists
-  const getGrecaptcha = (): any => {
-    return (window as any).grecaptcha;
+  const getGrecaptcha = (): Grecaptcha | undefined => {
+    return (window as unknown as { grecaptcha?: Grecaptcha }).grecaptcha;
   };
 
   // Helper to ensure the reCAPTCHA script is loaded
@@ -30,9 +35,10 @@ export async function executeRecaptcha(action: string): Promise<string> {
       if (existingScript) {
         // Wait until grecaptcha object is fully loaded and ready
         const interval = setInterval(() => {
-          if (getGrecaptcha() && getGrecaptcha().ready) {
+          const gr = getGrecaptcha();
+          if (gr && gr.ready) {
             clearInterval(interval);
-            getGrecaptcha().ready(resolve);
+            gr.ready(resolve);
           }
         }, 100);
         return;
@@ -45,8 +51,9 @@ export async function executeRecaptcha(action: string): Promise<string> {
       script.defer = true;
       script.onload = () => {
         const checkReady = () => {
-          if (getGrecaptcha() && getGrecaptcha().ready) {
-            getGrecaptcha().ready(resolve);
+          const gr = getGrecaptcha();
+          if (gr && gr.ready) {
+            gr.ready(resolve);
           } else {
             setTimeout(checkReady, 50);
           }

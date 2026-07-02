@@ -1,16 +1,13 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Sparkles, TrendingUp, CheckCircle, Plus, ArrowRight, UserCheck, Trash2, ArrowLeft, RefreshCw, Zap, Shield, Flame } from "lucide-react";
+import { Plus, UserCheck, Trash2, ArrowLeft, RefreshCw, Flame } from "lucide-react";
 import HoloTradingCard from "../../../components/HoloTradingCard";
-import CooldownTracker from "../../../components/CooldownTracker";
 import { usePushNotifications } from "../../../hooks/usePushNotifications";
-import { supabase } from "../../../lib/supabase";
 import {
-  getUserGoals,
-  saveUserGoal,
   getProfileOverride,
   saveProfileOverride,
   saveUserGoalsToDb,
@@ -175,28 +172,48 @@ type ProfileTokenPageClientProps = {
   plaidBankName?: string;
   analysisSummary?: string;
   lastAnalysisAt?: string;
-  initialQuests?: any[];
-  initialBosses?: any[];
-  initialStreaks?: any[];
+  initialQuests?: Quest[];
+  initialBosses?: Boss[];
+  initialStreaks?: Streak[];
 };
+
+interface Quest {
+  id: string;
+  title: string;
+  description: string;
+  difficulty: string;
+  category: string;
+  target_merchant: string;
+  target_amount: number;
+  duration_days: number;
+  status: "pending" | "active" | "completed" | "failed";
+  xp_reward: number;
+  coin_reward: number;
+}
+
+interface Boss {
+  id: string;
+  name: string;
+  max_hp: number;
+  current_hp: number;
+  status: "active" | "defeated";
+  gold_reward: number;
+  target_subscriptions?: (string | { merchant?: string; name?: string })[];
+}
+
+interface Streak {
+  id: string;
+  current_streak: number;
+  max_streak: number;
+  last_activity_date: string;
+}
 
 export default function ProfileTokenPageClient({
   token,
   userId,
-  email,
   initialProfileName,
-  stabilityLevel,
-  savingLevel,
-  investingLevel,
-  primaryFocusCoin,
-  challengeCompletions,
-  totalCompletions,
   playerLevel: initialPlayerLevel,
   activeChallengeToken,
-  allDone,
-  nextEmailSent,
-  nextNeededDay,
-  nextChallengeToken,
   firstName,
   initialGoals,
   userStreak,
@@ -207,6 +224,7 @@ export default function ProfileTokenPageClient({
   initialQuests,
   initialBosses,
   initialStreaks,
+  primaryFocusCoin,
 }: ProfileTokenPageClientProps) {
   // Client state
   const [profileName, setProfileName] = useState<ProfileName>(initialProfileName);
@@ -226,12 +244,12 @@ export default function ProfileTokenPageClient({
 
 
   // Gamified Destiny Engine States
-  const [quests, setQuests] = useState<any[]>(initialQuests || []);
-  const [bosses, setBosses] = useState<any[]>(initialBosses || []);
-  const [streaks, setStreaks] = useState<any[]>(initialStreaks || []);
+  const [quests, setQuests] = useState<Quest[]>(initialQuests || []);
+  const [bosses, setBosses] = useState<Boss[]>(initialBosses || []);
+  const [streaks, setStreaks] = useState<Streak[]>(initialStreaks || []);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
-  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<{ name: string; balances?: { current?: number } }[]>([]);
 
   const loadGameData = async () => {
     try {
@@ -271,7 +289,11 @@ export default function ProfileTokenPageClient({
         }),
       });
       if (res.ok) {
-        const data = await res.json();
+        const data = (await res.json()) as {
+          accounts?: { name: string; balances?: { current?: number } }[];
+          updatedQuests?: Quest[];
+          updatedBosses?: Boss[];
+        };
         setSyncMessage("Mise à jour des quêtes...");
         if (Array.isArray(data.accounts)) {
           setBankAccounts(data.accounts);
@@ -279,10 +301,10 @@ export default function ProfileTokenPageClient({
         await loadGameData();
         
         const lang = getLocale();
-        const completedQuest = data.updatedQuests?.find((q: any) => q.status === "completed");
+        const completedQuest = data.updatedQuests?.find((q) => q.status === "completed");
         if (completedQuest) {
           triggerLocalNotification("quest_completed", lang, completedQuest.title, `/profile/${token}`, completedQuest.xp_reward);
-        } else if (data.updatedBosses?.length > 0) {
+        } else if (data.updatedBosses && data.updatedBosses.length > 0) {
           const activeBoss = bosses.find(b => b.status === "active");
           const updatedBoss = data.updatedBosses[0];
           if (activeBoss && updatedBoss) {
@@ -293,7 +315,7 @@ export default function ProfileTokenPageClient({
           }
         }
 
-        if (data.updatedQuests?.length > 0 || data.updatedBosses?.length > 0) {
+        if ((data.updatedQuests && data.updatedQuests.length > 0) || (data.updatedBosses && data.updatedBosses.length > 0)) {
           alert("Quests and Boss updated after analyzing your spending! 🎉");
         } else {
           alert("Sync complete! Your challenges are up to date. ⚔️");
@@ -301,8 +323,9 @@ export default function ProfileTokenPageClient({
       } else {
         throw new Error("Synchronization failed.");
       }
-    } catch (err: any) {
-      alert(err.message || "Error during synchronization.");
+    } catch (err) {
+      const error = err as Error;
+      alert(error.message || "Error during synchronization.");
     } finally {
       setSyncing(false);
       setSyncMessage("");
@@ -338,8 +361,9 @@ export default function ProfileTokenPageClient({
         const errData = await res.json();
         throw new Error(errData.error || "Activation failed.");
       }
-    } catch (err: any) {
-      alert(err.message || "Error during activation.");
+    } catch (err) {
+      const error = err as Error;
+      alert(error.message || "Error during activation.");
     } finally {
       setSyncing(false);
       setSyncMessage("");
@@ -351,6 +375,7 @@ export default function ProfileTokenPageClient({
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get("welcome") === "true") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setShowWelcomeBanner(true);
       }
       
@@ -404,6 +429,7 @@ export default function ProfileTokenPageClient({
 
       loadGameData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, plaidAccessToken, plaidBankName, lastAnalysisAt]);
 
   // Push notifications hook
@@ -421,15 +447,15 @@ export default function ProfileTokenPageClient({
   };
 
   // Transactions state for Month-End Evaluation
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
-  const [totalSpent, setTotalSpent] = useState(0);
   
   // Persistent Player Stats
   const [playerStats, setPlayerStats] = useState({ level: playerLevel, xp: 0, coins: 0 });
 
   // Month-end evaluation modal
   const [showEvalModal, setShowEvalModal] = useState(false);
-  const [evalSuccess, setEvalSuccess] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [evalSavings, setEvalSavings] = useState(0);
 
   // Load client-side overrides and goals on mount
@@ -437,6 +463,7 @@ export default function ProfileTokenPageClient({
     // 1. Profile override
     const savedProfile = getProfileOverride(userId);
     if (savedProfile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProfileName(savedProfile as ProfileName);
     }
 
@@ -459,18 +486,7 @@ export default function ProfileTokenPageClient({
     } else if (goals.length > 0 && goals[0]) {
       setActiveGoalId(goals[0].id);
     }
-
-    // 3. Load actual spending to compute totalSpent
-    const rawSpent = localStorage.getItem(`actual_spending_${userId}`);
-    if (rawSpent) {
-      try {
-        const spentList = JSON.parse(rawSpent);
-        const sum = spentList.reduce((acc: number, item: any) => acc + Math.abs(item.cost), 0);
-        setTotalSpent(sum);
-      } catch (e) {
-        console.error(e);
-      }
-    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, goals]);
 
   // Load real challenge transactions on mount & changes
@@ -480,8 +496,9 @@ export default function ProfileTokenPageClient({
       const saved = localStorage.getItem(txKey);
       if (saved) {
         try {
-          const parsed = JSON.parse(saved);
-          const realChallengeTxs = parsed.filter((tx: any) => tx.id && tx.id.startsWith("real-tx-"));
+          const parsed = JSON.parse(saved) as { id?: string }[];
+          const realChallengeTxs = parsed.filter((tx) => tx.id && tx.id.startsWith("real-tx-")) as unknown as Transaction[];
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setAllTransactions(realChallengeTxs);
         } catch (e) {
           console.error(e);
@@ -568,36 +585,9 @@ export default function ProfileTokenPageClient({
     }
   };
 
-  const getMonthlyBudget = (name: ProfileName) => {
-    switch (name) {
-      case "The Survivor": return 900;
-      case "The Explorer": return 1400;
-      case "The Saver":
-      case "The Stabilizer": return 1700;
-      case "The Builder":
-      case "The Strategist":
-      case "The Opportunist": return 2200;
-      case "The Wealth Architect": return 3600;
-      default: return 1400;
-    }
-  };
-  const monthlyBudget = getMonthlyBudget(profileName);
 
-  // Month-End Evaluation
-  const handleTriggerEvaluation = () => {
-    const totalExpenses = allTransactions
-      .filter((t) => t.amount < 0 && t.category !== "saving")
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-    const netSavings = monthlyBudget - totalExpenses;
-    setEvalSavings(Math.round(netSavings));
 
-    // Determine if budget is well managed (e.g. if net savings are positive)
-    const isSuccessful = netSavings > 0 || totalCompletions > 0;
-    setEvalSuccess(isSuccessful);
-
-    setShowEvalModal(true);
-  };
 
   const handleConfirmUpgrade = () => {
     // Evolve profile to next archetype
@@ -733,7 +723,7 @@ export default function ProfileTokenPageClient({
                 <span className="text-[8px] font-medium text-slate-400">· Coach Penny</span>
               </div>
               <p className="text-[11px] font-semibold leading-relaxed">
-                &ldquo;Welcome to your Finlevels Dashboard, {firstName}! I'm Penny, your game companion. Here, you can track your archetype status, launch daily quests, and grow your savings chest shield. Let's make smart choices together! 🛡️✨&rdquo;
+                &ldquo;Welcome to your Finlevels Dashboard, {firstName}! I&apos;m Penny, your game companion. Here, you can track your archetype status, launch daily quests, and grow your savings chest shield. Let&apos;s make smart choices together! 🛡️✨&rdquo;
               </p>
             </div>
 
@@ -858,7 +848,7 @@ export default function ProfileTokenPageClient({
                 }`}
               >
                 <span className="sm:hidden">Coach Penny 🦉</span>
-                <span className="hidden sm:inline">Coach Penny's Diagnostic 🦉</span>
+                <span className="hidden sm:inline">Coach Penny&apos;s Diagnostic 🦉</span>
                 <span className="bg-violet-100 text-violet-700 text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-normal">AI</span>
                 {activeTab === "coach" && (
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#5B5DF2] rounded-full animate-fade-in" />
@@ -900,7 +890,7 @@ export default function ProfileTokenPageClient({
                         ))
                       ) : (
                         <p className="text-[9px] text-slate-400 font-bold italic">
-                          No balance available. Click "Sync" above to refresh balances.
+                          No balance available. Click &quot;Sync&quot; above to refresh balances.
                         </p>
                       )}
                     </div>
@@ -910,7 +900,7 @@ export default function ProfileTokenPageClient({
                   <div className="rounded-3xl border border-[#E9E8F3] bg-white/70 backdrop-blur-md p-6 shadow-xs">
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="text-sm font-black text-[#1A1833] uppercase tracking-wider">Active Goals ("Side Quests")</h3>
+                        <h3 className="text-sm font-black text-[#1A1833] uppercase tracking-wider">Active Goals (&quot;Side Quests&quot;)</h3>
                         <p className="text-[10px] font-bold text-slate-500">Savings from daily choices flow into the active goal</p>
                       </div>
                       <button
@@ -996,7 +986,7 @@ export default function ProfileTokenPageClient({
                       ) : (
                         <div className="p-6 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
                           <p className="text-xs font-bold text-slate-500">No active side quest goals</p>
-                          <p className="text-[9px] text-slate-400 mt-1">Tap the "+" button to set a savings goal.</p>
+                          <p className="text-[9px] text-slate-400 mt-1">Tap the &quot;+&quot; button to set a savings goal.</p>
                         </div>
                       )}
                     </div>
@@ -1045,7 +1035,7 @@ export default function ProfileTokenPageClient({
                         <div className="mt-4 bg-white/70 rounded-2xl p-3 border border-red-100">
                           <p className="text-[9px] font-black text-slate-500 uppercase tracking-wider mb-2">Subscriptions to defeat:</p>
                           <div className="flex flex-wrap gap-1.5">
-                            {Array.isArray(boss.target_subscriptions) && boss.target_subscriptions.map((sub: any, i: number) => {
+                            {Array.isArray(boss.target_subscriptions) && boss.target_subscriptions.map((sub: string | { merchant?: string; name?: string }, i: number) => {
                               const subName = typeof sub === "string" ? sub : (sub?.merchant || sub?.name || "Subscription");
                               return (
                                 <span key={i} className="text-[10px] font-bold px-2.5 py-1 bg-red-100/50 text-red-800 rounded-xl border border-red-200/40">
@@ -1154,7 +1144,6 @@ export default function ProfileTokenPageClient({
                               {pendingQuests.map((quest) => {
                                 let borderClass = "border-slate-100 hover:border-slate-300";
                                 let bgAccent = "bg-slate-500/5";
-                                let txtColor = "text-[#1A1833]";
                                 let iconColor = "text-slate-500";
 
                                 if (quest.category === "stability") {
@@ -1228,7 +1217,7 @@ export default function ProfileTokenPageClient({
                         <div className="p-6 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/30">
                           <p className="text-xs font-bold text-slate-500">Bank analysis in progress...</p>
                           <p className="text-[10px] text-slate-400 mt-1">
-                            Penny is inspecting your budget to generate your weekly challenge proposals. Click "Sync" above to refresh balances.
+                            Penny is inspecting your budget to generate your weekly challenge proposals. Click &quot;Sync&quot; above to refresh balances.
                           </p>
                         </div>
                       );
@@ -1420,7 +1409,7 @@ export default function ProfileTokenPageClient({
               </div>
               <div className="h-px bg-slate-200" />
               <p className="text-xs font-semibold text-slate-600 leading-normal">
-                Penny's Audit: "No cap, your budget looks clean! You managed to keep leaks low and compound your side quests. Ready to level up your status?"
+                Penny&apos;s Audit: &quot;No cap, your budget looks clean! You managed to keep leaks low and compound your side quests. Ready to level up your status?&quot;
               </p>
             </div>
 

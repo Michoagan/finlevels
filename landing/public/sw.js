@@ -3,7 +3,7 @@ self.addEventListener("push", (event) => {
   let data = {};
   try {
     data = event.data?.json() ?? {};
-  } catch (e) {
+  } catch {
     // Fallback if data is not JSON or empty
     data = {
       title: "Finlevels Quest Update",

@@ -1,37 +1,25 @@
 "use client";
 
-import { Sparkles, AlertTriangle, ArrowLeft, Bell } from "lucide-react";
+import { Sparkles, ArrowLeft, Bell } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
-import { usePushNotifications } from "../../../hooks/usePushNotifications";
+
 import {
   saveChallengeCompletion,
-  allocateGoalSavings,
   getUserGoals,
   saveUserGoalsToDb,
   type UserGoal,
   type ChallengePath,
 } from "../../../lib/challenges";
-import HoloTradingCard, { renderCharacterSvg } from "../../../components/HoloTradingCard";
+import { type Transaction } from "../../../lib/transaction-simulator";
+import HoloTradingCard from "../../../components/HoloTradingCard";
+import { usePushNotifications } from "../../../hooks/usePushNotifications";
 
 type ProfileName =
   | "The Survivor" | "The Explorer" | "The Stabilizer" | "The Saver"
   | "The Builder"  | "The Investor" | "The Strategist" | "The Wealth Architect"
   | "The Opportunist";
-
-const profileImages: Record<ProfileName, string> = {
-  "The Survivor": "/profile-survivor.png",
-  "The Explorer": "/profile-explorer.png",
-  "The Stabilizer": "/profile-stabilizer.png",
-  "The Saver": "/profile-saver.png",
-  "The Builder": "/profile-builder.png",
-  "The Investor": "/profile-investor.png",
-  "The Strategist": "/profile-strategist.png",
-  "The Opportunist": "/profile-opportunist.png",
-  "The Wealth Architect": "/profile-wealth-architect.png",
-};
-
 
 function resolveProfileName(s: number, sv: number, iv: number): ProfileName {
   const hasHighStability = s >= 4;
@@ -49,82 +37,10 @@ function resolveProfileName(s: number, sv: number, iv: number): ProfileName {
   return "The Explorer";
 }
 import {
-  generateTransactions,
   getDailyQuestDetail,
-  getScaleFactor,
 } from "../../../lib/transaction-simulator";
 import ShareChallengeButton from "../../../components/ShareChallengeButton";
 import { trackEvent } from "../../../lib/analytics";
-
-function renderGoalChestSvg(category: string, isActive: boolean) {
-  const activeColor = isActive ? "#E4FF30" : "#a855f7";
-  const glowClass = isActive ? "animate-pulse filter drop-shadow-[0_0_8px_rgba(228,255,48,0.5)]" : "opacity-75";
-
-  switch (category) {
-    case "stability":
-      return (
-        <svg viewBox="0 0 100 100" className={`w-14 h-14 ${glowClass} transition-all duration-300`}>
-          {/* Reinforced Vault Chest */}
-          <rect x="20" y="25" width="60" height="50" rx="8" fill="#334155" stroke="#475569" strokeWidth="2" />
-          <rect x="25" y="30" width="50" height="40" rx="4" fill="#1e293b" />
-          {/* Vault Wheel */}
-          <circle cx="50" cy="50" r="14" fill="#64748b" stroke={activeColor} strokeWidth="2" />
-          <circle cx="50" cy="50" r="6" fill="#475569" />
-          {/* Vault notches */}
-          <line x1="50" y1="32" x2="50" y2="40" stroke={activeColor} strokeWidth="1.5" />
-          <line x1="50" y1="60" x2="50" y2="68" stroke={activeColor} strokeWidth="1.5" />
-          <line x1="32" y1="50" x2="40" y2="50" stroke={activeColor} strokeWidth="1.5" />
-          <line x1="60" y1="50" x2="68" y2="50" stroke={activeColor} strokeWidth="1.5" />
-          {/* LED light */}
-          <circle cx="70" cy="35" r="2" fill={isActive ? "#E4FF30" : "#ef4444"} className={isActive ? "animate-ping" : ""} />
-        </svg>
-      );
-    case "saving":
-      return (
-        <svg viewBox="0 0 100 100" className={`w-14 h-14 ${glowClass} transition-all duration-300`}>
-          {/* Piggy Bank Chest */}
-          <path d="M 50,25 C 65,25 78,35 78,50 C 78,65 65,75 50,75 C 42,75 36,71 32,67 L 22,67 C 18,67 18,57 22,57 C 22,57 20,53 20,50 C 20,35 35,25 50,25 Z" fill="#ec4899" stroke="#f472b6" strokeWidth="2" />
-          {/* Curly tail */}
-          <path d="M 78 50 Q 85 45 83 38" fill="none" stroke="#f472b6" strokeWidth="2" strokeLinecap="round" />
-          {/* Coin slot */}
-          <ellipse cx="50" cy="33" rx="6" ry="1.5" fill="#1f2937" />
-          {/* Eye */}
-          <circle cx="34" cy="45" r="2.5" fill="#1f2937" />
-          <circle cx="33.5" cy="44" r="0.8" fill="#fff" />
-          {/* Snout */}
-          <ellipse cx="22" cy="50" rx="3" ry="5" fill="#db2777" />
-          {/* Feet */}
-          <rect x="35" y="70" width="8" height="10" rx="2" fill="#db2777" />
-          <rect x="57" y="70" width="8" height="10" rx="2" fill="#db2777" />
-          {/* Glowing Coin above Piggy */}
-          {isActive && (
-            <g className="animate-bounce">
-              <circle cx="50" cy="15" r="4" fill="#ffd700" stroke="#f5af19" strokeWidth="1" />
-              <text x="50" y="17.5" fontSize="6" fontWeight="bold" textAnchor="middle" fill="#904900">$</text>
-            </g>
-          )}
-        </svg>
-      );
-    case "investing":
-    default:
-      return (
-        <svg viewBox="0 0 100 100" className={`w-14 h-14 ${glowClass} transition-all duration-300`}>
-          {/* Quantum Rocket Chest */}
-          <polygon points="50,15 80,45 80,75 50,85 20,75 20,45" fill="#312e81" stroke="#4f46e5" strokeWidth="2" />
-          {/* Holographic inner grid lines */}
-          <line x1="50" y1="15" x2="50" y2="85" stroke="#818cf8" strokeWidth="1" strokeDasharray="2,2" />
-          <line x1="20" y1="45" x2="80" y2="45" stroke="#818cf8" strokeWidth="1" strokeDasharray="2,2" />
-          <line x1="20" y1="75" x2="80" y2="75" stroke="#818cf8" strokeWidth="1" strokeDasharray="2,2" />
-          {/* Glowing Center Core */}
-          <circle cx="50" cy="50" r="10" fill="#06b6d4" opacity="0.3" className="animate-pulse" />
-          <circle cx="50" cy="50" r="5" fill={activeColor} className="animate-ping" />
-          <circle cx="50" cy="50" r="3" fill="#ffffff" />
-          {/* Rocket details / float vectors */}
-          <path d="M 50 15 L 65 30 M 50 15 L 35 30" stroke={activeColor} strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      );
-  }
-}
 
 type ChallengeTokenPageClientProps = {
   token: string;
@@ -702,28 +618,7 @@ function MascotFullSvg({ className }: { className?: string }) {
   );
 }
 
-function formatTransactionAmount(amount: number, categoryName: string): string {
-  if (amount === 0) return "$0.00";
-  if (categoryName === "Income") {
-    return `+${Math.abs(amount).toLocaleString("en-US", { style: "currency", currency: "USD" })}`;
-  }
-  return `-${Math.abs(amount).toLocaleString("en-US", { style: "currency", currency: "USD" })}`;
-}
 
-function getChoiceEmoji(title: string): string {
-  const lower = title.toLowerCase();
-  if (lower.includes("coffee") || lower.includes("starbucks")) return "☕";
-  if (lower.includes("pasta") || lower.includes("cook")) return "🍝";
-  if (lower.includes("ubereats") || lower.includes("delivery") || lower.includes("munchies")) return "🍔";
-  if (lower.includes("netflix") || lower.includes("streaming") || lower.includes("subscription")) return "📺";
-  if (lower.includes("gym")) return "🏋️";
-  if (lower.includes("shoes") || lower.includes("nike")) return "👟";
-  if (lower.includes("vault") || lower.includes("savings") || lower.includes("save")) return "💰";
-  if (lower.includes("etf") || lower.includes("invest") || lower.includes("shares") || lower.includes("brokerage")) return "📈";
-  if (lower.includes("altcoins") || lower.includes("volatile")) return "🚀";
-  if (lower.includes("checking") || lower.includes("cash")) return "💵";
-  return "💸";
-}
 
 type PennyCoachCompanionProps = {
   pennyMessage: string;
@@ -745,8 +640,6 @@ function PennyCoachCompanion({
   savingsDeposited,
   activeGoalName,
   questState,
-  profileName,
-  animationState
 }: PennyCoachCompanionProps) {
   let stateType: "intro" | "warning" | "analysis" | "success" = "intro";
   let displayTitle = "Penny Coach";
@@ -836,16 +729,21 @@ export default function ChallengeTokenPageClient({
   investingLevel,
   initialGoals,
   plaidAccessToken,
-  plaidBankName,
 }: ChallengeTokenPageClientProps) {
-  // RPG gameplay states
   const [profileName, setProfileName] = useState<ProfileName>("The Explorer");
   const [goals, setGoals] = useState<UserGoal[]>(initialGoals);
   const [activeGoalId, setActiveGoalId] = useState("");
-  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<{ name: string; balances?: { current?: number } }[]>([]);
 
-  const scaleFactor = getScaleFactor(stabilityLevel, savingLevel, investingLevel);
   const characterName = profileName.replace("The ", "");
+  const pennySpeechText = `Bonjour ${userName} ! Les défis CoinStack sont désormais basés sur votre score de transactions réelles Plaid. Chaque action financière aura un impact immédiat sur vos niveaux ! 🪙`;
+
+  const currentStabilityLevel = stabilityLevel;
+  const currentStabilityXp = stabilityLevel * 100;
+  const currentSavingLevel = savingLevel;
+  const currentSavingXp = savingLevel * 100;
+  const currentInvestingLevel = investingLevel;
+  const currentInvestingXp = investingLevel * 100;
   const questDetail = getDailyQuestDetail(
     challengePath,
     challengeDay,
@@ -867,12 +765,10 @@ export default function ChallengeTokenPageClient({
   const [savingsDeposited, setSavingsDeposited] = useState(0);
   const [activeGoalName, setActiveGoalName] = useState("");
 
-  // Push notification opt-in banner ("peak delight" strategy)
-  const { subscribe, enabled: pushEnabled, blocked: pushBlocked, loading: pushLoading } = usePushNotifications();
+  const { enabled: pushEnabled, blocked: pushBlocked, loading: pushLoading, subscribe } = usePushNotifications(userId);
   const [showPushBanner, setShowPushBanner] = useState(false);
   const [pushBannerDismissed, setPushBannerDismissed] = useState(false);
 
-  // Keep exactly one goal per category
   const filteredGoals = (() => {
     const categories = ["stability", "saving", "investing"];
     const result: UserGoal[] = [];
@@ -894,7 +790,7 @@ export default function ChallengeTokenPageClient({
     return result;
   })();
 
-  // Keep activeGoalId synchronized with filteredGoals
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (filteredGoals.length > 0) {
       const isCurrentActiveInFiltered = filteredGoals.some(g => g.id === activeGoalId);
@@ -911,44 +807,21 @@ export default function ChallengeTokenPageClient({
     }
   }, [goals, activeGoalId, filteredGoals]);
 
-  const [currentStabilityLevel, setCurrentStabilityLevel] = useState(stabilityLevel);
-  const [currentStabilityXp, setCurrentStabilityXp] = useState(stabilityLevel * 100);
-
-  const [currentSavingLevel, setCurrentSavingLevel] = useState(savingLevel);
-  const [currentSavingXp, setCurrentSavingXp] = useState(savingLevel * 100);
-
-  const [currentInvestingLevel, setCurrentInvestingLevel] = useState(investingLevel);
-  const [currentInvestingXp, setCurrentInvestingXp] = useState(investingLevel * 100);
-
-  const [pennySpeechText, setPennySpeechText] = useState(
-    `Bonjour ${userName} ! Les défis CoinStack sont désormais basés sur votre score de transactions réelles Plaid. Chaque action financière aura un impact immédiat sur vos niveaux ! 🏦`
-  );
-
-  const [plaidTransactions, setPlaidTransactions] = useState<any[]>([]);
-
-  const [totalSpent, setTotalSpent] = useState(0);
-  const [pastChallengeExpenses, setPastChallengeExpenses] = useState<any[]>([]);
-  const [showRecentActivity, setShowRecentActivity] = useState(false);
-
-  const getMonthlyBudget = (name: ProfileName) => {
-    switch (name) {
-      case "The Survivor": return 900;
-      case "The Explorer": return 1400;
-      case "The Saver":
-      case "The Stabilizer": return 1700;
-      case "The Builder":
-      case "The Strategist":
-      case "The Opportunist": return 2200;
-      case "The Wealth Architect": return 3600;
-      default: return 1400;
-    }
-  };
-  const monthlyBudget = getMonthlyBudget(profileName);
+  interface MappedPlaidTx {
+    id: string;
+    date: string;
+    name: string;
+    amount: number;
+    category: string;
+    scoreEffect: number;
+    xpEffect: number;
+    type?: string;
+  }
+  const [plaidTransactions, setPlaidTransactions] = useState<MappedPlaidTx[]>([]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
-        // Resolve profile override
         const saved = localStorage.getItem(`profile_override_${userId}`);
         if (saved) {
           setProfileName(saved as ProfileName);
@@ -956,36 +829,16 @@ export default function ChallengeTokenPageClient({
           setProfileName(resolveProfileName(stabilityLevel, savingLevel, investingLevel));
         }
 
-        // Load goals
         const userGoals = goals.length > 0 ? goals : getUserGoals(userId);
-        setGoals(userGoals);
-        const active = userGoals.find((g) => g.isActive);
-        if (active) {
-          setActiveGoalId(active.id);
-          setActiveGoalName(active.name);
-        } else if (userGoals.length > 0 && userGoals[0]) {
-          setActiveGoalId(userGoals[0].id);
-          setActiveGoalName(userGoals[0].name);
+        if (userGoals.length > 0) {
+          setGoals(userGoals);
+          const active = userGoals.find(g => g.isActive);
+          if (active) {
+            setActiveGoalId(active.id);
+            setActiveGoalName(active.name);
+          }
         }
 
-        // Load total spent
-        const rawSpent = localStorage.getItem(`actual_spending_${userId}`);
-        if (rawSpent) {
-          const spentList = JSON.parse(rawSpent);
-          const sum = spentList.reduce((acc: number, item: any) => acc + Math.abs(item.cost), 0);
-          setTotalSpent(sum);
-        }
-
-        // Load past challenge transactions
-        const txKey = `transactions_${userId}`;
-        const savedTx = localStorage.getItem(txKey);
-        if (savedTx) {
-          const txList = JSON.parse(savedTx);
-          const realChallengeTxs = txList.filter((tx: any) => tx.id && tx.id.startsWith("real-tx-"));
-          setPastChallengeExpenses(realChallengeTxs);
-        }
-
-        // Retrieve real Plaid transactions dynamically
         const savedToken = localStorage.getItem(`plaid_access_token_${userId}`) || plaidAccessToken;
         if (savedToken) {
           fetch("/api/plaid/sync-and-validate", {
@@ -1004,7 +857,15 @@ export default function ChallengeTokenPageClient({
               }
               if (Array.isArray(data.transactions)) {
                 // Map Plaid transactions for rendering
-                const mapped = data.transactions.map((tx: any, idx: number) => {
+                interface PlaidTransaction {
+                  transaction_id?: string;
+                  date: string;
+                  name?: string;
+                  merchant_name?: string;
+                  amount: number;
+                  category?: string[];
+                }
+                const mapped: MappedPlaidTx[] = data.transactions.map((tx: PlaidTransaction, idx: number) => {
                   const amt = Number(tx.amount);
                   const isExpense = amt > 0; // Plaid: positive amount represents debit/expense
                   return {
@@ -1027,7 +888,9 @@ export default function ChallengeTokenPageClient({
         console.error(e);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, stabilityLevel, savingLevel, investingLevel, plaidAccessToken]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
 
 
@@ -1060,6 +923,7 @@ export default function ChallengeTokenPageClient({
     }
   };
   const [error, setError] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedChoiceIds, setSelectedChoiceIds] = useState<string[]>([]);
   const [userStreak, setUserStreak] = useState(initialStreak);
   const [triggerConfetti, setTriggerConfetti] = useState(false);
@@ -1079,6 +943,7 @@ export default function ChallengeTokenPageClient({
       const savedLvl = localStorage.getItem("finlevels_level");
       const savedXp = localStorage.getItem("finlevels_total_xp");
       const savedCoins = localStorage.getItem("finlevels_total_coins");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPlayerStats({
         level: savedLvl ? parseInt(savedLvl, 10) : 1,
         xp: savedXp ? parseInt(savedXp, 10) : 0,
@@ -1127,13 +992,9 @@ export default function ChallengeTokenPageClient({
     ? totalCost <= questDetail.threshold
     : totalCost >= questDetail.threshold;
 
-  const todayExpectedDeduction = isCompleted
-    ? 0
-    : (selectedChoiceIds.length > 0
-        ? (isBudgetValid ? Math.max(totalCost, questDetail.threshold) : totalCost)
-        : 0);
 
-  const remainingWalletBalance = monthlyBudget - totalSpent - todayExpectedDeduction;
+
+
 
   const canSubmit = selectedChoiceIds.length > 0;
 
@@ -1238,7 +1099,14 @@ export default function ChallengeTokenPageClient({
       if (typeof window !== "undefined") {
         try {
           const rawSpent = localStorage.getItem(`actual_spending_${userId}`) || "[]";
-          const spentList = JSON.parse(rawSpent);
+          interface SpentItem {
+            id: string;
+            choiceId: string;
+            title: string;
+            cost: number;
+            date: string;
+          }
+          const spentList = JSON.parse(rawSpent) as SpentItem[];
           selectedChoices.forEach((choice) => {
             spentList.push({
               id: `spent-${Date.now()}-${choice.id}`,
@@ -1252,6 +1120,7 @@ export default function ChallengeTokenPageClient({
           // If within budget, also deduct savings transfer from checking balance
           if (isBudgetValid && savedAmount > 0) {
             spentList.push({
+              // eslint-disable-next-line react-hooks/purity
               id: `savings-${Date.now()}`,
               choiceId: "savings-deposit",
               title: `Saved: Deposit into ${activeGoalName || "active chest"}`,
@@ -1262,13 +1131,11 @@ export default function ChallengeTokenPageClient({
 
           localStorage.setItem(`actual_spending_${userId}`, JSON.stringify(spentList));
 
-          // Instantly update total spent state
-          const newSpentSum = spentList.reduce((acc: number, item: any) => acc + Math.abs(item.cost), 0);
-          setTotalSpent(newSpentSum);
+
 
           const txKey = `transactions_${userId}`;
           const savedTx = localStorage.getItem(txKey) || "[]";
-          const txList = JSON.parse(savedTx);
+          const txList = JSON.parse(savedTx) as Transaction[];
           selectedChoices.forEach((choice) => {
             txList.unshift({
               id: `real-tx-${Date.now()}-${choice.id}`,
@@ -1284,6 +1151,7 @@ export default function ChallengeTokenPageClient({
 
           if (isBudgetValid && savedAmount > 0) {
             txList.unshift({
+              // eslint-disable-next-line react-hooks/purity
               id: `real-tx-${Date.now()}-savings`,
               date: new Date().toISOString().split("T")[0],
               description: `Savings Deposit to ${activeGoalName || "active chest"}`,
@@ -1328,12 +1196,7 @@ export default function ChallengeTokenPageClient({
     }
   };
 
-  const handleToggleChoice = (choiceId: string) => {
-    if (isCompleted || questState !== "selecting") return;
-    setSelectedChoiceIds((prev) =>
-      prev.includes(choiceId) ? prev.filter((id) => id !== choiceId) : [...prev, choiceId]
-    );
-  };
+
 
   const currentLevelXpBase = (playerStats.level - 1) * 300;
   const xpInCurrentLevel = playerStats.xp - currentLevelXpBase;

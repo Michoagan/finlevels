@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     let payload;
     try {
       payload = decryptChallengeToken(decodeURIComponent(token));
-    } catch (e) {
+    } catch {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     let accessToken = clientAccessToken;
     if (!accessToken) {
       // Load Plaid access token from waitlist table in DB
-      const { data: userData, error: fetchErr } = await sb
+      const { data: userData } = await sb
         .from("waitlist")
         .select("plaid_access_token")
         .eq("id", userId)
@@ -48,19 +48,38 @@ export async function POST(request: Request) {
     }
 
 
+    interface PlaidAccount {
+      account_id: string;
+      name: string;
+      balances: {
+        current?: number | null;
+        available?: number | null;
+      };
+    }
+
+    interface PlaidTx {
+      account_id: string;
+      date: string;
+      name?: string | null;
+      merchant_name?: string | null;
+      amount: number;
+      category?: string[] | null;
+    }
+
     // 1. Fetch accounts and balances (always ready immediately)
-    let plaidAccounts: any[] = [];
+    let plaidAccounts: PlaidAccount[] = [];
     try {
       const accountsResponse = await plaidClient.accountsGet({
         access_token: accessToken,
       });
       plaidAccounts = accountsResponse.data.accounts || [];
-    } catch (err: any) {
-      console.warn("Failed to fetch Plaid accounts:", err.message);
+    } catch (err) {
+      const error = err as Error;
+      console.warn("Failed to fetch Plaid accounts:", error.message);
     }
 
     // 2. Fetch all historical transactions (may throw PRODUCT_NOT_READY initially)
-    let plaidTransactions: any[] = [];
+    let plaidTransactions: PlaidTx[] = [];
     try {
       const endDate = new Date().toISOString().split("T")[0];
       const startDate = "2000-01-01";
@@ -76,8 +95,9 @@ export async function POST(request: Request) {
       if (plaidAccounts.length === 0) {
         plaidAccounts = plaidResponse.data.accounts || [];
       }
-    } catch (err: any) {
-      console.warn("Plaid transactions not ready or failed to fetch (non-blocking):", err.message);
+    } catch (err) {
+      const error = err as Error;
+      console.warn("Plaid transactions not ready or failed to fetch (non-blocking):", error.message);
     }
 
 
@@ -248,8 +268,9 @@ export async function POST(request: Request) {
       transactions: plaidTransactions,
       accounts: plaidAccounts,
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Sync failed" }, { status: 500 });
+  } catch (error) {
+    const err = error as Error;
+    return NextResponse.json({ error: err.message || "Sync failed" }, { status: 500 });
   }
 }
 

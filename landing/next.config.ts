@@ -7,7 +7,7 @@ try {
   if (supabaseUrl) {
     supabaseHost = new URL(supabaseUrl).host;
   }
-} catch (e) {
+} catch {
   // Ignored
 }
 

@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { Metadata } from "next";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { decryptChallengeToken, encryptChallengeToken } from "../../../lib/challenge-token";
 import { calculateConsecutiveStreak } from "../../../lib/challenge-streak";
@@ -25,7 +24,7 @@ type ProfileEntry = {
   email: string | null;
   profile_name: string | null; stability_level: number | null;
   saving_level: number | null; investing_level: number | null; primary_focus_coin: string | null;
-  goals: any | null;
+  goals: unknown | null;
   plaid_access_token?: string | null;
   plaid_bank_name?: string | null;
   analysis_summary?: string | null;
@@ -118,6 +117,7 @@ async function getChallengeCompletions(userId: number): Promise<Record<string, n
   return counts;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getQuests(userId: number): Promise<any[]> {
   const sb = await makeClient(); if (!sb) return [];
   const { data, error } = await sb
@@ -129,6 +129,7 @@ async function getQuests(userId: number): Promise<any[]> {
   return data;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getBosses(userId: number): Promise<any[]> {
   const sb = await makeClient(); if (!sb) return [];
   const { data, error } = await sb
@@ -140,6 +141,7 @@ async function getBosses(userId: number): Promise<any[]> {
   return data;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getStreaks(userId: number): Promise<any[]> {
   const sb = await makeClient(); if (!sb) return [];
   const { data, error } = await sb
