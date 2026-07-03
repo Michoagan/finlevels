@@ -1,0 +1,11 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark background -->
+  <rect width="512" height="512" fill="#09081e"/>
+  <!-- Finlevels logo centered, scaled to ~60% of canvas -->
+  <!-- Original viewBox 0 0 94 76, centered in 512x512 with ~65% scale -->
+  <!-- Scale factor: 512 * 0.65 / 94 ≈ 3.54, height 76 * 3.54 ≈ 269 -->
+  <!-- Offset: x = (512 - 94*3.54)/2 ≈ 89, y = (512 - 76*3.54)/2 ≈ 121 -->
+  <g transform="translate(89, 121) scale(3.54)">
+    <path d="M94 75.2002H0V38H18.7998V56.4004H37.5996V18.7998H56.4004V56.4004H75.2002V0H94V75.2002Z" fill="#4648D4"/>
+  </g>
+</svg>

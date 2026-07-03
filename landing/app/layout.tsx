@@ -21,8 +21,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://finlevels.app"),
   manifest: "/manifest.json",
   icons: {
-    icon: "/logo-purple.svg",
-    apple: "/logo-purple.svg",
+    icon: "/icon-512.svg",
+    apple: "/icon-512.svg",
   },
   keywords: [
     "finlevels",
