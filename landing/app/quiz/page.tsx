@@ -1396,20 +1396,20 @@ export default function QuizPage() {
               <div className="relative mt-4 w-full rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-left">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm">🧪</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">Mode Sandbox — identifiants de test</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">Sandbox Mode — test credentials</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Nom d&apos;utilisateur</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">User&apos;s name</p>
                     <p className="text-xs font-black text-amber-300 font-mono tracking-wide">user_good</p>
                   </div>
                   <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Mot de passe</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">User&apos;s password</p>
                     <p className="text-xs font-black text-amber-300 font-mono tracking-wide">pass_good</p>
                   </div>
                 </div>
                 <p className="mt-2 text-[9px] font-medium text-slate-500 leading-relaxed">
-                  Utilisez ces identifiants dans la fenêtre Plaid qui s&apos;ouvrira. Aucune vraie banque n&apos;est connectée.
+                  Use these credentials in the Plaid window that will open. No real bank is connected.
                 </p>
               </div>
 
