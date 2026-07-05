@@ -1404,8 +1404,8 @@ export default function QuizPage() {
                     <p className="text-xs font-black text-amber-300 font-mono tracking-wide">user_good</p>
                   </div>
                   <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">User&apos;s password</p>
-                    <p className="text-xs font-black text-amber-300 font-mono tracking-wide">pass_good</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">User&apos;s password & code</p>
+                    <p className="text-xs font-black text-amber-300 font-mono tracking-wide">pass_good & 123456</p>
                   </div>
                 </div>
                 <p className="mt-2 text-[9px] font-medium text-slate-500 leading-relaxed">
