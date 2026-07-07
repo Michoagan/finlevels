@@ -1401,7 +1401,7 @@ export default function QuizPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
                     <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">User&apos;s name</p>
-                    <p className="text-xs font-black text-amber-300 font-mono tracking-wide">user_good</p>
+                    <p className="text-xs font-black text-amber-300 font-mono tracking-wide">user_transactions_dynamic</p>
                   </div>
                   <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
                     <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">User&apos;s password</p>

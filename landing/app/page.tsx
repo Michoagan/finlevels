@@ -392,7 +392,7 @@ export default function Home() {
                 onClick={handleStartAdventure}
                 className="group cursor-pointer inline-flex items-center justify-center gap-2 rounded-full bg-[#4648d4] px-8 py-4 text-base font-extrabold text-white shadow-[0_16px_40px_rgba(70,72,212,0.22)] transition-all hover:scale-[1.02] hover:bg-[#393bbb] w-full sm:w-auto"
               >
-                Start Your Adventure
+                Play the Demo
                 <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
               </button>
               <WaitlistButton className="inline-flex justify-center items-center rounded-full border border-[#4648d4]/15 bg-white px-8 py-4 text-base font-extrabold text-[#4648d4] shadow-sm transition-all hover:scale-[1.02] hover:bg-[#f5f2fe] w-full sm:w-auto">
